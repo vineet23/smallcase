@@ -10,3 +10,6 @@ class TradeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trade
         fields = "__all__"
+
+    def create(self):
+        return Trade(**self.validated_data)
