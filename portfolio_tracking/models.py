@@ -21,7 +21,7 @@ class Portfolio(models.Model):
     shares = models.PositiveIntegerField(validators=[validateShares], blank=False, null=False)
 
     def __str__(self):
-        return self.ticker_symbol
+        return self.ticker_symbol+" "+str(self.average_price)+" "+str(self.shares)
 
 class Trade(models.Model):
     id = models.AutoField(primary_key=True)
@@ -32,4 +32,4 @@ class Trade(models.Model):
     trade_type = models.CharField(max_length=5, validators=[validateTradeType], blank=False, null=False)
 
     def __str__(self):
-        return self.ticker_symbol+" "+str(self.shares)+" "+self.trade_type
+        return self.ticker_symbol+" "+str(self.shares)+" "+self.trade_type+" "+str(self.price)

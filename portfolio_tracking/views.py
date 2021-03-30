@@ -177,7 +177,7 @@ def updateTrade(newTrade,oldTrade):
     #when ticker symbol is updated
     else:
         #check if possible to delete old trade and add new trade in respective portfolio
-        if (deleteTrade(oldTrade,check=True) and addTrade(newTrade,check=True)):
+        if (deleteTrade(oldTrade,True) and addTrade(newTrade,True)):
             #update respective portfolio and return True
             deleteTrade(oldTrade)
             addTrade(newTrade)
@@ -195,12 +195,13 @@ class AddTradeView(APIView):
         serializer = TradeSerializer(data=data)    
         if serializer.is_valid():
             #create the trade object
-            trade = serializer.create()
+            trade = serializer.create(serializer.validated_data)
             #check if addition of trade is valid 
             if(addTrade(trade)):
                 #if valid save the trade
-                serializer.save()
-                return Response(serializer.data)
+                trade.save()
+                s = TradeSerializer(trade)
+                return Response(s.data)
             #if not then return error
             return Response({'error':'trade adding not possible'},status=400)
         #if data is not valid return the errors
@@ -228,12 +229,13 @@ class TradeView(APIView):
         serializer = TradeSerializer(trade, data=request.data, partial=True)
         if serializer.is_valid():
             #create the updated trade object
-            newTrade = serializer.create()
+            newTrade = serializer.update(trade,serializer.validated_data)
             #check if trade update is valid
             if(updateTrade(newTrade,trade)):
                 #if valid then update the trade
-                serializer.save()
-                return Response(serializer.data)
+                newTrade.save()
+                s = TradeSerializer(newTrade)
+                return Response(s.data)
             #if not then return error
             return Response({'error':'trade update not possible'},status=400)
         #if data is not valid return the errors
@@ -251,3 +253,41 @@ class TradeView(APIView):
         #if not then return error
         return Response({'error':'trade delete not possible'},status=400)
 
+
+class PortfolioTradeView(APIView):
+
+    def get(self,request,tickerSymbol,format=None):
+        try:
+            trades = Trade.objects.filter(ticker_symbol=tickerSymbol)
+            portfolio = Portfolio.objects.get(ticker_symbol=tickerSymbol)
+            tradeSerializer = TradeSerializer(trades, many=True)
+            portfolioSerializer = PortfolioSerializer(portfolio)
+            tradeData = tradeSerializer.data
+            portfolioData = portfolioSerializer.data
+        except Trade.DoesNotExist:
+            tradeData = []
+        except Portfolio.DoesNotExist:
+            portfolioData = {}
+        return Response({'portfolio':portfolioData,'trades':tradeData},status=200)
+
+
+
+class PortfolioView(APIView):
+
+    def get(self,request):
+        portfolios = Portfolio.objects.all()
+        serializer = PortfolioSerializer(portfolios, many=True)
+        return Response(serializer.data)
+
+
+class PortfolioReturnView(APIView):
+
+    def currentPrice(self,tickerSymbol):
+        return 100
+
+    def get(self,request):
+        portfolio = Portfolio.objects.all()[::1]
+        amount = 0
+        for p in portfolio:
+            amount += (self.currentPrice(p.ticker_symbol) - p.average_price) * p.shares
+        return Response({'returns':amount},status=200)
