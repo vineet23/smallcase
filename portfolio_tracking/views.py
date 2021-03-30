@@ -5,6 +5,14 @@ from rest_framework import status
 from .models import Portfolio,Trade
 from .serializers import PortfolioSerializer,TradeSerializer
 
+def createPortfolioSerializer(price,tickerSymbol,shares):
+    #create data to create a portfolio for ticker symbol
+    data = {}
+    data['average_price'] = price
+    data['ticker_symbol'] = tickerSymbol
+    data['shares'] = shares
+    #return portfolio serializer
+    return PortfolioSerializer(data=data)
 
 def getSharesAveragePrice(trades):
     shares = 0
@@ -39,13 +47,8 @@ def addTrade(trade,check=False):
         #check if trade type is sell then return false as it is not possible to sell on non existing portfolio
         if trade.trade_type == "sell":
             return False
-        #create data to create a portfolio for ticker symbol
-        data = {}
-        data['average_price'] = trade.price
-        data['ticker_symbol'] = trade.ticker_symbol
-        data['shares'] = trade.shares
-        #pass the data to portfolio serializer
-        portfolioSerializer = PortfolioSerializer(data=data)
+        #create a portfolio for ticker symbol
+        portfolioSerializer = createPortfolioSerializer(trade.price, trade.ticker_symbol, trade.shares)
         #if data is valid then save the portfolio and return true
         if portfolioSerializer.is_valid():
             #if not check then save the portfolio
@@ -60,13 +63,17 @@ def addTrade(trade,check=False):
         trades = Trade.objects.filter(ticker_symbol=trade.ticker_symbol).order_by('id')[::1]
         #if trade id is none i.e adding a trade or else trade is changed(updated)
         if trade.id is None:
+            #when new non saved trade is added
             trades.append(trade)
         else:
+            #when a saved trade is added, add it according to its id
             for index,t in enumerate(trades):
                 if t.id > trade.id:
                     trades.insert(index,trade)
                     break
-            #todo check if trade was added
+            #when trade is not added as its id is greater than the others
+            if (index == len(trades)-1 and trades[-1].id != trade.id):
+                trades.append(trade)
         #get the shares and average price from the passed in trades
         shares,averagePrice = getSharesAveragePrice(trades)
         if shares<0:
@@ -134,13 +141,8 @@ def updateTrade(newTrade,oldTrade):
             #check if trade type is sell then return false as it is not possible to sell on non existing portfolio
             if newTrade.trade_type == "sell":
                 return False
-            #create data to create a portfolio for ticker symbol
-            data = {}
-            data['average_price'] = newTrade.price
-            data['ticker_symbol'] = newTrade.ticker_symbol
-            data['shares'] = newTrade.shares
-            #pass the data to portfolio serializer
-            portfolioSerializer = PortfolioSerializer(data=data)
+            #create a portfolio for ticker symbol
+            portfolioSerializer = createPortfolioSerializer(newTrade.price, newTrade.ticker_symbol, newTrade.shares)
             #if data is valid and old trade update is valid then save the portfolio and return true
             if portfolioSerializer.is_valid():
                 portfolio = portfolioSerializer.save()
