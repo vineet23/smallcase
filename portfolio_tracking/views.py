@@ -254,6 +254,24 @@ class TradeView(APIView):
         return Response({'error':'trade delete not possible'},status=400)
 
 
+class TradesView(APIView):
+
+    def get(self,request):
+        portfolio = Portfolio.objects.all()[::1]
+        data = []
+        for p in portfolio:
+            try:
+                trades = Trade.objects.filter(ticker_symbol=p.ticker_symbol)
+                tradeSerializer = TradeSerializer(trades, many=True)
+                portfolioSerializer = PortfolioSerializer(p)
+                d = portfolioSerializer.data
+                d['trades'] = tradeSerializer.data
+                data.append(d)
+            except Trade.DoesNotExist:
+                return Response({'error':'trades does not exists for a portfolio'},status=200)
+        return Response(data,status=200)
+
+
 class PortfolioTradeView(APIView):
 
     def get(self,request,tickerSymbol,format=None):
