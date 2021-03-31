@@ -6,16 +6,39 @@ from rest_framework import status
 from .models import Portfolio,Trade
 from .serializers import PortfolioSerializer,TradeSerializer
 
+
 def createPortfolioSerializer(price: float ,tickerSymbol: str ,shares: int) -> 'PortfolioSerializer':
+    """Create a portfolio serializer object.
+
+    Creates a portfolio serializer object with the help of data passed in as args.
+
+    Args:
+        price: A float indicating average price of a portfolio.
+        tickerSymbol: A string Representing ticker symbol of a portfolio.
+        shares: An integer indicating shares of a portfolio.
+
+    Returns:
+        PortfolioSerializer object created using passed data.
+    """
+
     #create data to create a portfolio for ticker symbol
     data = {}
     data['average_price'] = price
     data['ticker_symbol'] = tickerSymbol
     data['shares'] = shares
-    #return portfolio serializer
     return PortfolioSerializer(data=data)
 
+
 def getSharesAveragePrice(trades: List['Trade']) -> (int,float):
+    """Calculate shares and average price for a portfolio with passed in trades.
+
+    Args:
+        trades: List of trades for a portfolio.
+
+    Returns:
+        A tuple containing calculated shares and average price.
+    """
+
     shares = 0
     averagePrice = 0
     if len(trades)==0:
@@ -40,6 +63,20 @@ def getSharesAveragePrice(trades: List['Trade']) -> (int,float):
 
 
 def addTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
+    """Add and check if addition of a trade is valid or not.
+
+    Add and check if addition of a trade is possible in a portfolio for a passed
+    in trade, if check is true then portfolio is not updated else portfolio is updated with
+    new calculated value.
+
+    Args:
+        trade: A Trade object to be added.
+        check: Optional; A bool to indicate to update portfolio for the given trade or not.
+
+    Returns:
+        bool to indicate if addition of trade is possible or not.
+    """
+
     #get the portfolio with the help of ticker symbol in trade
     try:
         portfolio = Portfolio.objects.get(ticker_symbol=trade.ticker_symbol)
@@ -72,11 +109,12 @@ def addTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
                 if t.id > trade.id:
                     trades.insert(index,trade)
                     break
-            #when trade is not added as its id is greater than the others
+            #check if trade was added earlier or not
             if (index == len(trades)-1 and trades[-1].id != trade.id):
                 trades.append(trade)
         #get the shares and average price from the passed in trades
         shares,averagePrice = getSharesAveragePrice(trades)
+        #as shares is less than zero, it is not possible to add a trade 
         if shares<0:
             return False
         #if shares is zero then delete the portfolio
@@ -98,6 +136,20 @@ def addTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
 
 
 def deleteTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
+    """Delete and check if deletion of a trade is valid or not.
+
+    Delete and check if deletion of a trade is possible in a portfolio for a passed
+    in trade, if check is true then portfolio is not updated else portfolio is updated with
+    new calculated value.
+
+    Args:
+        trade: A Trade object to be added.
+        check: Optional; A bool to indicate to update portfolio for the given trade or not.
+
+    Returns:
+        bool to indicate if deletion of trade is possible or not.
+    """
+
     #get the portfolio with the help of ticker symbol in trade
     try:
         portfolio = Portfolio.objects.get(ticker_symbol=trade.ticker_symbol)
@@ -105,12 +157,14 @@ def deleteTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
         return True
     try:
         trades = Trade.objects.filter(ticker_symbol=trade.ticker_symbol).order_by('id')[::1]
+        #remove the passed trade from trades
         for index,t in enumerate(trades):
             if t.id == trade.id:
                 trades.pop(index)
                 break
         #get the shares and average price from the passed in trades
         shares,averagePrice = getSharesAveragePrice(trades)
+        #as shares is less than zero, it is not possible to add a trade 
         if shares<0:
             return False
         #if shares is zero then delete the portfolio
@@ -132,6 +186,19 @@ def deleteTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
 
 
 def updateTrade(newTrade: 'Trade', oldTrade: 'Trade') -> bool:
+    """Update and check if updating a trade is valid or not.
+
+    Update and check if updating a trade is possible in a portfolio for a passed
+    in trade and update portfolio with new calculated value.
+
+    Args:
+        newTrade: A trade object with new data.
+        oldTrade: A trade object to be updated.
+
+    Returns:
+        bool to indicate if deletion of trade is possible or not.
+    """
+
     #check if ticker symbol is updated
     if newTrade.ticker_symbol == oldTrade.ticker_symbol:
         #get the portfolio with the help of ticker symbol in new trade
@@ -179,17 +246,24 @@ def updateTrade(newTrade: 'Trade', oldTrade: 'Trade') -> bool:
     else:
         #check if possible to delete old trade and add new trade in respective portfolio
         if (deleteTrade(oldTrade,True) and addTrade(newTrade,True)):
-            #update respective portfolio and return True
+            #update respective trade portfolio and return True
             deleteTrade(oldTrade)
             addTrade(newTrade)
             return True
         return False
 
 
-
 class AddTradeView(APIView):
 
     def post(self, request):
+        """POST method for addition of a trade.
+
+        Adds a trade if valid and return the response.
+
+        Returns:
+            Response of the added trade or error if not possible
+        """
+
         #get the data from the request
         data = request.data.copy()
         #create a trade serializer with data and check if data is valid
@@ -209,22 +283,51 @@ class AddTradeView(APIView):
         return Response(serializer.errors,status=400)    
         
 
-
 class TradeView(APIView):
 
     def getTrade(self, id:int):
+        """Get the trade with passed in trade id.
+
+        Args:
+            id: An integer indicating trade id.
+
+        Raises:
+            Http404: An error occured when id is not valid.
+        """
+
         try:
             return Trade.objects.get(id=id)
         except Trade.DoesNotExist:
             raise Http404
 
     def get(self, request, id, format=None):
+        """GET method to get a trade.
+
+        Args:
+            id: An integer indicating trade id.
+
+        Returns:
+            Response of the trade or error if not possible.
+        """
+
+        # with the help of trade id
         trade = self.getTrade(id)
         serializer = TradeSerializer(trade)
         return Response(serializer.data)
 
     def put(self, request, id, format=None):
-        #get the trade
+        """UPDATE method for updation of a trade.
+
+        update a trade if valid and return the response.
+
+        Args:
+            id: An integer indicating trade id.
+
+        Returns:
+            Response of the updated trade or error if not possible
+        """
+
+        #get the trade with the help of trade id
         trade = self.getTrade(id)
         #update the trade and check if data is valid
         serializer = TradeSerializer(trade, data=request.data, partial=True)
@@ -243,7 +346,18 @@ class TradeView(APIView):
         return Response(serializer.errors,status=400)
 
     def delete(self, request, id, format=None):
-        #get the trade
+        """DELETE method for deletion of a trade.
+
+        delete a trade if valid and return the response.
+
+        Args:
+            id: An integer indicating trade id.
+
+        Returns:
+            Response of the deleted trade or error if not possible
+        """
+
+        #get the trade with the help of trade id
         trade = self.getTrade(id)
         serializer = TradeSerializer(trade)
          #check if trade delete is valid
@@ -258,8 +372,16 @@ class TradeView(APIView):
 class TradesView(APIView):
 
     def get(self, request):
+        """GET method to get trades along with all portfolio.
+
+        Returns:
+            Response of the trades with portfolio or error if not possible.
+        """
+
+        #get the list of portfolios
         portfolio = Portfolio.objects.all()[::1]
         data = []
+        #for every portfolio get the trades and return it
         for p in portfolio:
             try:
                 trades = Trade.objects.filter(ticker_symbol=p.ticker_symbol)
@@ -276,9 +398,21 @@ class TradesView(APIView):
 class PortfolioTradeView(APIView):
 
     def get(self, request, tickerSymbol, format=None):
+        """GET method to get trades for a portfolio.
+
+        Args:
+            tickerSymbol: A string indicating ticker symbol for portfolio.
+
+        Returns:
+            Response of the trades with portfolio.
+        """
+
         try:
+            #get all the trades for the ticker symbol
             trades = Trade.objects.filter(ticker_symbol=tickerSymbol)
+            #get the portfolio for the ticker symbol
             portfolio = Portfolio.objects.get(ticker_symbol=tickerSymbol)
+            #arrange the data and return the response
             tradeSerializer = TradeSerializer(trades, many=True)
             portfolioSerializer = PortfolioSerializer(portfolio)
             tradeData = tradeSerializer.data
@@ -290,10 +424,15 @@ class PortfolioTradeView(APIView):
         return Response({'portfolio':portfolioData,'trades':tradeData},status=200)
 
 
-
 class PortfolioView(APIView):
 
     def get(self, request):
+        """GET method to get all portfolio.
+
+        Returns:
+            Response of portfolios.
+        """
+
         portfolios = Portfolio.objects.all()
         serializer = PortfolioSerializer(portfolios, many=True)
         return Response(serializer.data)
@@ -301,10 +440,24 @@ class PortfolioView(APIView):
 
 class PortfolioReturnView(APIView):
 
-    def currentPrice(self, tickerSymbol:str):
+    def currentPrice(self, tickerSymbol:str) -> float:
+        """Get the current price for the passed in ticker symbol.
+
+        Args:
+            tickerSymbol: A string representing ticker symbol.
+
+        Returns:
+            A float value representing the current price of the ticker symbol.
+        """
+
         return 100
 
     def get(self, request):
+        """GET method to get return amount from all the portfolios.
+
+        Returns:
+            Response containing the calculated return amount.
+        """
         portfolio = Portfolio.objects.all()[::1]
         amount = 0
         for p in portfolio:
