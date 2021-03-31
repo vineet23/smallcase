@@ -1,11 +1,12 @@
 from django.http import Http404
+from typing import List, Optional
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Portfolio,Trade
 from .serializers import PortfolioSerializer,TradeSerializer
 
-def createPortfolioSerializer(price,tickerSymbol,shares):
+def createPortfolioSerializer(price: float ,tickerSymbol: str ,shares: int) -> 'PortfolioSerializer':
     #create data to create a portfolio for ticker symbol
     data = {}
     data['average_price'] = price
@@ -14,7 +15,7 @@ def createPortfolioSerializer(price,tickerSymbol,shares):
     #return portfolio serializer
     return PortfolioSerializer(data=data)
 
-def getSharesAveragePrice(trades):
+def getSharesAveragePrice(trades: List['Trade']) -> (int,float):
     shares = 0
     averagePrice = 0
     if len(trades)==0:
@@ -38,7 +39,7 @@ def getSharesAveragePrice(trades):
     return (shares,averagePrice)
 
 
-def addTrade(trade,check=False):
+def addTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
     #get the portfolio with the help of ticker symbol in trade
     try:
         portfolio = Portfolio.objects.get(ticker_symbol=trade.ticker_symbol)
@@ -96,7 +97,7 @@ def addTrade(trade,check=False):
         return False
 
 
-def deleteTrade(trade,check=False):
+def deleteTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
     #get the portfolio with the help of ticker symbol in trade
     try:
         portfolio = Portfolio.objects.get(ticker_symbol=trade.ticker_symbol)
@@ -130,7 +131,7 @@ def deleteTrade(trade,check=False):
         return False
 
 
-def updateTrade(newTrade,oldTrade):
+def updateTrade(newTrade: 'Trade', oldTrade: 'Trade') -> bool:
     #check if ticker symbol is updated
     if newTrade.ticker_symbol == oldTrade.ticker_symbol:
         #get the portfolio with the help of ticker symbol in new trade
@@ -188,7 +189,7 @@ def updateTrade(newTrade,oldTrade):
 
 class AddTradeView(APIView):
 
-    def post(self,request):
+    def post(self, request):
         #get the data from the request
         data = request.data.copy()
         #create a trade serializer with data and check if data is valid
@@ -211,18 +212,18 @@ class AddTradeView(APIView):
 
 class TradeView(APIView):
 
-    def getTrade(self,id):
+    def getTrade(self, id:int):
         try:
             return Trade.objects.get(id=id)
         except Trade.DoesNotExist:
             raise Http404
 
-    def get(self,request,id,format=None):
+    def get(self, request, id, format=None):
         trade = self.getTrade(id)
         serializer = TradeSerializer(trade)
         return Response(serializer.data)
 
-    def put(self,request,id,format=None):
+    def put(self, request, id, format=None):
         #get the trade
         trade = self.getTrade(id)
         #update the trade and check if data is valid
@@ -241,7 +242,7 @@ class TradeView(APIView):
         #if data is not valid return the errors
         return Response(serializer.errors,status=400)
 
-    def delete(self,request,id,format=None):
+    def delete(self, request, id, format=None):
         #get the trade
         trade = self.getTrade(id)
         serializer = TradeSerializer(trade)
@@ -256,7 +257,7 @@ class TradeView(APIView):
 
 class TradesView(APIView):
 
-    def get(self,request):
+    def get(self, request):
         portfolio = Portfolio.objects.all()[::1]
         data = []
         for p in portfolio:
@@ -274,7 +275,7 @@ class TradesView(APIView):
 
 class PortfolioTradeView(APIView):
 
-    def get(self,request,tickerSymbol,format=None):
+    def get(self, request, tickerSymbol, format=None):
         try:
             trades = Trade.objects.filter(ticker_symbol=tickerSymbol)
             portfolio = Portfolio.objects.get(ticker_symbol=tickerSymbol)
@@ -292,7 +293,7 @@ class PortfolioTradeView(APIView):
 
 class PortfolioView(APIView):
 
-    def get(self,request):
+    def get(self, request):
         portfolios = Portfolio.objects.all()
         serializer = PortfolioSerializer(portfolios, many=True)
         return Response(serializer.data)
@@ -300,10 +301,10 @@ class PortfolioView(APIView):
 
 class PortfolioReturnView(APIView):
 
-    def currentPrice(self,tickerSymbol):
+    def currentPrice(self, tickerSymbol:str):
         return 100
 
-    def get(self,request):
+    def get(self, request):
         portfolio = Portfolio.objects.all()[::1]
         amount = 0
         for p in portfolio:

@@ -2,15 +2,15 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-def validateTradeType(value):
+def validateTradeType(value:str):
     if value!="buy" and value!="sell":
         raise ValidationError(_('Expected value buy or sell not %(value)s'),params={'value':value})
 
-def validatePrice(value):
+def validatePrice(value:float):
     if value <= 0:
         raise ValidationError(_('Invalid price, expected value greater the 0'))
 
-def validateShares(value):
+def validateShares(value:int):
     if value <= 0:
         raise ValidationError(_('Invalid shares, expected value greater than 0'))
 
@@ -20,7 +20,7 @@ class Portfolio(models.Model):
     average_price = models.DecimalField(max_digits=99, decimal_places=2, validators=[validatePrice], blank=False, null=False)
     shares = models.PositiveIntegerField(validators=[validateShares], blank=False, null=False)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.ticker_symbol+" "+str(self.average_price)+" "+str(self.shares)
 
 class Trade(models.Model):
@@ -31,5 +31,5 @@ class Trade(models.Model):
     shares = models.PositiveIntegerField(validators=[validateShares], blank=False, null=False)
     trade_type = models.CharField(max_length=5, validators=[validateTradeType], blank=False, null=False)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.ticker_symbol+" "+str(self.shares)+" "+self.trade_type+" "+str(self.price)
