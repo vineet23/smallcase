@@ -154,7 +154,7 @@ def deleteTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
     try:
         portfolio = Portfolio.objects.get(ticker_symbol=trade.ticker_symbol)
     except Portfolio.DoesNotExist:
-        return True
+        return False
     try:
         trades = Trade.objects.filter(ticker_symbol=trade.ticker_symbol).order_by('id')[::1]
         #remove the passed trade from trades
@@ -410,15 +410,15 @@ class PortfolioTradeView(APIView):
         try:
             #get all the trades for the ticker symbol
             trades = Trade.objects.filter(ticker_symbol=tickerSymbol)
+            tradeSerializer = TradeSerializer(trades, many=True)
+            tradeData = tradeSerializer.data
             #get the portfolio for the ticker symbol
             portfolio = Portfolio.objects.get(ticker_symbol=tickerSymbol)
-            #arrange the data and return the response
-            tradeSerializer = TradeSerializer(trades, many=True)
             portfolioSerializer = PortfolioSerializer(portfolio)
-            tradeData = tradeSerializer.data
             portfolioData = portfolioSerializer.data
         except Trade.DoesNotExist:
             tradeData = []
+            portfolioData = {}
         except Portfolio.DoesNotExist:
             portfolioData = {}
         return Response({'portfolio':portfolioData,'trades':tradeData},status=200)
