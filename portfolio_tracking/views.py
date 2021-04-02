@@ -44,8 +44,14 @@ def getSharesAveragePrice(trades: List['Trade']) -> (int,float):
     if len(trades)==0:
         return (shares,averagePrice)
     #initialize shares and average price with the first trade
-    shares = trades[0].shares
-    averagePrice = trades[0].price
+    #if first trade is sell the return as first trade can't be sell
+    if trades[0].trade_type == "sell":
+        shares = -trades[0].shares
+        averagePrice = trades[0].price
+        return(shares,averagePrice)
+    else:
+        shares = trades[0].shares
+        averagePrice = trades[0].price
     #for every trade after first one
     for trade in trades[1:]:
         if shares<0:
