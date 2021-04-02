@@ -117,17 +117,15 @@ def addTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
         #as shares is less than zero, it is not possible to add a trade 
         if shares<0:
             return False
-        #if shares is zero then delete the portfolio
-        if shares==0:
-            #if not check then delete the portfolio
-            if not (check):
-                portfolio.delete()
-            return True
         #if not check then update the portfolio
         if not (check):
             #update the selected portfolio with new shares and average price and return true
             portfolio.shares=shares
-            portfolio.average_price= averagePrice
+            #if shares is zero then make the portfolio average price zero
+            if shares==0:
+                portfolio.average_price = 0
+            else:
+                portfolio.average_price= averagePrice
             portfolio.save()
         return True
     #if no trade exists, return false
@@ -167,8 +165,8 @@ def deleteTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
         #as shares is less than zero, it is not possible to add a trade 
         if shares<0:
             return False
-        #if shares is zero then delete the portfolio
-        if shares == 0:
+        #if shares is zero and no trades are prsent then delete the portfolio
+        if shares == 0 and len(trades) == 0:
             #if not check then delete the portfolio
             if not (check):
                 portfolio.delete()
@@ -177,7 +175,11 @@ def deleteTrade(trade: 'Trade', check: Optional[bool]= False) -> bool:
         if not (check):
             #update the selected portfolio with new shares and average price and return true
             portfolio.shares=shares
-            portfolio.average_price= averagePrice
+            #if shares is zero then make the portfolio average price zero
+            if shares == 0:
+                portfolio.average_price = 0
+            else:
+                portfolio.average_price= averagePrice
             portfolio.save()
         return True
     #if no trade exists, return false
@@ -231,13 +233,13 @@ def updateTrade(newTrade: 'Trade', oldTrade: 'Trade') -> bool:
             #when shares is less than zero, update not possible
             if shares<0 :
                 return False
-            #when shares is equal to zero then delete the portfolio
-            if shares==0:
-                portfolio.delete()
-                return True
             #update the selected portfolio with new shares and average price and return true
             portfolio.shares=shares
-            portfolio.average_price= averagePrice
+            #if shares is zero then make the portfolio average price zero
+            if shares==0:
+                portfolio.average_price = 0
+            else:
+                portfolio.average_price= averagePrice
             portfolio.save()
             return True
         except Trade.DoesNotExist:
