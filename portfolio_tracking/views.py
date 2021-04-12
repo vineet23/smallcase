@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Portfolio,Trade
 from .serializers import PortfolioSerializer,TradeSerializer
+import requests
 
 
 def createPortfolioSerializer(price: float ,tickerSymbol: str ,shares: int) -> 'PortfolioSerializer':
@@ -457,8 +458,14 @@ class PortfolioReturnView(APIView):
         Returns:
             A float value representing the current price of the ticker symbol.
         """
+        url = "https://quotes-api.tickertape.in/quotes?sids="+tickerSymbol
+        payload={}
+        headers = {'Cookie': 'AWSALB=bGy1umsDdCuxxqolzqIhCl5Ru/yb4ABfjcxABs6vYSrOtP/dTzic+lioqueQ6P8M4ILU0HA5rs5dZlAsRpXq9S95aoCqJGLZXng33Oim1QTUttxnjCBrNJTGNeHf; AWSALBCORS=bGy1umsDdCuxxqolzqIhCl5Ru/yb4ABfjcxABs6vYSrOtP/dTzic+lioqueQ6P8M4ILU0HA5rs5dZlAsRpXq9S95aoCqJGLZXng33Oim1QTUttxnjCBrNJTGNeHf'}
+        response = requests.request("GET", url, headers=headers, data=payload)
 
-        return 100
+        result = response.json()
+
+        return result['data'][0]['price']
 
     def get(self, request):
         """GET method to get return amount from all the portfolios.
