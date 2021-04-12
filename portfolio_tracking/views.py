@@ -6,6 +6,7 @@ from rest_framework import status
 from .models import Portfolio,Trade
 from .serializers import PortfolioSerializer,TradeSerializer
 import requests
+from decimal import Decimal
 
 
 def createPortfolioSerializer(price: float ,tickerSymbol: str ,shares: int) -> 'PortfolioSerializer':
@@ -465,7 +466,7 @@ class PortfolioReturnView(APIView):
 
         result = response.json()
 
-        return result['data'][0]['price']
+        return Decimal(result['data'][0]['price'])
 
     def get(self, request):
         """GET method to get return amount from all the portfolios.
